@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>BowTie — Prueba capa de datos</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 2rem; }
+  pre { background: #f4f4f4; padding: 1rem; overflow: auto; max-height: 400px; }
+  .warn { color: #b8860b; }
+  .ok { color: #2e7d32; }
+</style>
+</head>
+<body>
+  <h1>Prueba: excelLoader + dataValidator + dataModel + kpiCalculator</h1>
+  <input type="file" id="fileInput" accept=".xlsx" />
+  <div id="output"></div>
+
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="js/core/excelLoader.js"></script>
+  <script src="js/core/dataValidator.js"></script>
+  <script src="js/core/dataModel.js"></script>
+  <script src="js/core/kpiCalculator.js"></script>
+  <script src="js/core/dataPipeline.js"></script>
+  <script>
+    document.getElementById('fileInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const { sheets, missingSheets } = await window.BowtieExcelLoader.loadExcelFile(file);
+      const { modelo, report, kpis } = window.BowtieDataPipeline.runBowtiePipeline(sheets);
+
+      const out = document.getElementById('output');
+      out.innerHTML = '';
+
+      if (missingSheets.length) {
+        out.innerHTML += `<p class="warn">Hojas faltantes: ${missingSheets.join(', ')}</p>`;
+      }
+
+      out.innerHTML += `<h2>KPIs</h2><pre>${JSON.stringify(kpis, null, 2)}</pre>`;
+      out.innerHTML += `<h2>Modelo (${modelo.length} evento(s) tope)</h2><pre>${JSON.stringify(modelo, null, 2)}</pre>`;
+      out.innerHTML += `<h2>Reporte de validación (${report.issues.length} hallazgo(s))</h2><pre>${JSON.stringify(report.issues, null, 2)}</pre>`;
+
+      console.log('Modelo:', modelo);
+      console.log('KPIs:', kpis);
+      console.log('Reporte:', report.issues);
+    });
+  </script>
+</body>
+</html>
