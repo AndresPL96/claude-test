@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Visualizador BowTie</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="toolbar">
+    <input type="file" id="fileInput" accept=".xlsx" />
+    <label>Evento Tope: <select id="eventSelect"></select></label>
+    <label>Proceso/Área: <select id="areaSelect"></select></label>
+    <label>Semáforo: <select id="semaforoSelect"></select></label>
+    <button id="btnVistaSimple">1 · Vista simple</button>
+    <button id="btnVistaCompleta">2 · Vista completa</button>
+    <button id="btnExportPng">Exportar PNG</button>
+  </div>
+  <div class="layout">
+    <div id="cy"></div>
+    <div class="side-panel">
+      <div id="detailPanel">
+        <p class="hint">Carga un archivo .xlsx para comenzar.</p>
+      </div>
+      <div id="kpiPanel" style="display:none;"></div>
+    </div>
+  </div>
+  <div class="validation-panel" id="validationPanel" style="display:none;"></div>
+
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="vendor/cytoscape.min.js"></script>
+  <script src="js/core/excelLoader.js"></script>
+  <script src="js/core/dataValidator.js"></script>
+  <script src="js/core/dataModel.js"></script>
+  <script src="js/core/kpiCalculator.js"></script>
+  <script src="js/core/dataPipeline.js"></script>
+  <script src="js/diagram/bowtieLayout.js"></script>
+  <script src="js/diagram/cytoscapeStyles.js"></script>
+  <script src="js/diagram/diagramRenderer.js"></script>
+  <script src="js/diagram/exportPng.js"></script>
+  <script src="js/ui/fileLoader.js"></script>
+  <script src="js/ui/eventSelector.js"></script>
+  <script src="js/ui/filters.js"></script>
+  <script src="js/ui/appShell.js"></script>
+  <script>
+    const dom = {
+      cyContainer: document.getElementById('cy'),
+      detailPanel: document.getElementById('detailPanel'),
+      kpiPanel: document.getElementById('kpiPanel'),
+      validationPanel: document.getElementById('validationPanel'),
+      eventSelect: document.getElementById('eventSelect'),
+      areaSelect: document.getElementById('areaSelect'),
+      semaforoSelect: document.getElementById('semaforoSelect'),
+      btnVistaSimple: document.getElementById('btnVistaSimple'),
+      btnVistaCompleta: document.getElementById('btnVistaCompleta'),
+      btnExportPng: document.getElementById('btnExportPng'),
+    };
+
+    window.BowtieFileLoader.wireFileLoader(
+      document.getElementById('fileInput'),
+      (resultado) => {
+        if (resultado.missingSheets && resultado.missingSheets.length) {
+          alert('Faltan hojas en el Excel: ' + resultado.missingSheets.join(', '));
+        }
+        if (resultado.modelo.length === 0) {
+          dom.detailPanel.innerHTML = '<p class="hint">No se encontraron Eventos Tope válidos en el archivo.</p>';
+          if (resultado.report.issues.length > 0) {
+            window.BowtieAppShell.renderValidationPanel(dom.validationPanel, resultado.report.issues);
+          }
+          return;
+        }
+        window.BowtieAppShell.initAppShell(dom, resultado);
+      },
+      (err) => alert('Error al leer el archivo: ' + err.message)
+    );
+  </script>
+</body>
+</html>

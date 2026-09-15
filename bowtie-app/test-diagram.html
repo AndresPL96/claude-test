@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>BowTie — Diagrama de prueba (datos fijos)</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="toolbar">
+    <label>Evento Tope: <select id="eventSelect"></select></label>
+    <label>Proceso/Área: <select id="areaSelect"></select></label>
+    <label>Semáforo: <select id="semaforoSelect"></select></label>
+    <button id="btnVistaSimple">1 · Vista simple</button>
+    <button id="btnVistaCompleta">2 · Vista completa</button>
+    <button id="btnExportPng">Exportar PNG</button>
+  </div>
+  <div class="layout">
+    <div id="cy"></div>
+    <div class="side-panel">
+      <div id="detailPanel">
+        <p class="hint">Haz clic en una barrera, amenaza o consecuencia para ver el detalle.</p>
+      </div>
+      <div id="kpiPanel" style="display:none;"></div>
+    </div>
+  </div>
+  <div class="validation-panel" id="validationPanel" style="display:none;"></div>
+
+  <script src="vendor/cytoscape.min.js"></script>
+  <script src="js/diagram/bowtieLayout.js"></script>
+  <script src="js/diagram/cytoscapeStyles.js"></script>
+  <script src="js/diagram/diagramRenderer.js"></script>
+  <script src="js/diagram/exportPng.js"></script>
+  <script src="js/ui/eventSelector.js"></script>
+  <script src="js/ui/filters.js"></script>
+  <script src="js/ui/appShell.js"></script>
+  <script>
+    // Datos fijos de prueba: 1 evento con 3 amenazas (una sin barrera) y 2 consecuencias,
+    // incluyendo un factor de escalamiento, para poder probar el diagrama sin cargar Excel.
+    const modeloPrueba = [
+      {
+        id: 'ET-001',
+        nombre: 'Pérdida de contención de gas natural',
+        peligro: 'Transporte de gas natural',
+        procesoArea: 'Planta X - Compresión',
+        amenazas: [
+          {
+            id: 'AM-001', nombre: 'Corrosión interna de tubería', categoria: 'Mecánica',
+            descripcion: 'Pérdida de espesor por corrosión CO2/H2S', sinBarreras: false,
+            barreras: [
+              { id: 'BP-001', nombre: 'Inspección por ultrasonido', tipo: 'Activa', criticidad: 'Crítica', estado: 'Operativa', efectividadPct: 85, ultimaVerificacion: '2026-06-15', responsable: 'Ing. Confiabilidad', semaforo: 'VERDE',
+                factores: [{ id: 'FE-001', nombre: 'Falta de mantenimiento del equipo', controles: [{ id: 'CE-001', nombre: 'Plan de mantenimiento', efectividadPct: 70, estado: 'Operativa' }] }] },
+              { id: 'BP-002', nombre: 'Recubrimiento anticorrosivo', tipo: 'Pasiva', criticidad: 'No crítica', estado: 'Degradada', efectividadPct: 60, ultimaVerificacion: '2026-05-01', responsable: 'Ing. Confiabilidad', semaforo: 'AMARILLO', factores: [] },
+            ],
+          },
+          {
+            id: 'AM-002', nombre: 'Falla por fatiga en soldadura', categoria: 'Diseño',
+            descripcion: 'Ciclos de presión repetidos', sinBarreras: false,
+            barreras: [
+              { id: 'BP-003', nombre: 'Inspección radiográfica', tipo: 'Activa', criticidad: 'Crítica', estado: 'Fuera de servicio', efectividadPct: 40, ultimaVerificacion: '2026-01-10', responsable: 'Ing. Integridad', semaforo: 'ROJO', factores: [] },
+            ],
+          },
+          {
+            id: 'AM-003', nombre: 'Impacto de terceros (excavación)', categoria: 'Externa',
+            descripcion: 'Daño mecánico por maquinaria de terceros', sinBarreras: true, barreras: [],
+          },
+        ],
+        consecuencias: [
+          {
+            id: 'CO-001', nombre: 'Incendio en área de proceso', severidad: 4, categoriaImpacto: 'Personas',
+            descripcion: 'Incendio por ignición de nube de gas', sinBarreras: false,
+            barreras: [
+              { id: 'BM-001', nombre: 'Sistema de detección F&G', tipo: 'Activa', criticidad: 'Crítica', estado: 'Operativa', efectividadPct: 90, ultimaVerificacion: '2026-06-15', responsable: 'Ing. Confiabilidad', semaforo: 'VERDE', factores: [] },
+            ],
+          },
+          {
+            id: 'CO-002', nombre: 'Impacto ambiental por emisión', severidad: 3, categoriaImpacto: 'Ambiente',
+            descripcion: 'Emisión de gas natural a la atmósfera', sinBarreras: true, barreras: [],
+          },
+        ],
+      },
+    ];
+
+    const kpisPrueba = {
+      totalEventos: 1, totalAmenazas: 3, totalConsecuencias: 2,
+      totalBarrerasPreventivas: 3, totalBarrerasMitigadoras: 1,
+      barrerasPrevRojo: 1, barrerasMitRojo: 0,
+      efectividadPromedioPrev: 61.7, efectividadPromedioMit: 90,
+      amenazasSinBarrera: 1, consecuenciasSinBarrera: 1,
+    };
+
+    const dom = {
+      cyContainer: document.getElementById('cy'),
+      detailPanel: document.getElementById('detailPanel'),
+      kpiPanel: document.getElementById('kpiPanel'),
+      validationPanel: document.getElementById('validationPanel'),
+      eventSelect: document.getElementById('eventSelect'),
+      areaSelect: document.getElementById('areaSelect'),
+      semaforoSelect: document.getElementById('semaforoSelect'),
+      btnVistaSimple: document.getElementById('btnVistaSimple'),
+      btnVistaCompleta: document.getElementById('btnVistaCompleta'),
+      btnExportPng: document.getElementById('btnExportPng'),
+    };
+
+    window.BowtieAppShell.initAppShell(dom, { modelo: modeloPrueba, kpis: kpisPrueba, report: { issues: [] } });
+  </script>
+</body>
+</html>
