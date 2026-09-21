@@ -7,11 +7,12 @@
  * Convenciones de espaciado (en px, coordenadas del propio Cytoscape):
  */
 const LAYOUT = {
-  rowHeight: 90,       // separación vertical entre ramas (amenaza/consecuencia)
+  rowHeight: 130,      // separación vertical entre ramas (amenaza/consecuencia); debe superar la altura del ícono de barrera
   colWidth: 170,       // separación horizontal entre columnas (amenaza -> barreras -> evento)
   eventoX: 0,
-  toggleOffset: 55,    // separación del botón +/- respecto a su nodo
-  sideToggleOffsetX: 60,
+  toggleOffset: 40,    // separación del botón +/- respecto a su nodo
+  sideToggleOffsetX: 35,
+  sideToggleOffsetY: 35, // baja el botón +/- del evento para no superponerse con la línea central
   minBarreraSpacing: 150,
 };
 
@@ -157,7 +158,7 @@ function buildDiagramElements(evento, state) {
     toggleNode(
       'toggle:lado:izq',
       LAYOUT.eventoX - LAYOUT.sideToggleOffsetX,
-      LAYOUT.rowHeight * 0.6,
+      LAYOUT.sideToggleOffsetY,
       state.leftCollapsed,
       evento.amenazas.map((a) => a.id)
     )
@@ -166,7 +167,7 @@ function buildDiagramElements(evento, state) {
     toggleNode(
       'toggle:lado:der',
       LAYOUT.eventoX + LAYOUT.sideToggleOffsetX,
-      LAYOUT.rowHeight * 0.6,
+      LAYOUT.sideToggleOffsetY,
       state.rightCollapsed,
       evento.consecuencias.map((c) => c.id)
     )
