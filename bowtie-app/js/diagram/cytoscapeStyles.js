@@ -76,6 +76,7 @@ function bowtieStylesheet() {
     { selector: '.semaforo-amarillo', style: { 'background-image': `${ICONS}barrera_degradada.png` } },
     { selector: '.semaforo-naranja', style: { 'background-image': `${ICONS}barrera_degradada.png` } },
     { selector: '.semaforo-rojo', style: { 'background-image': `${ICONS}barrera_fallida.png` } },
+    { selector: '.semaforo-sin_datos', style: { 'background-image': `${ICONS}barrera_sin_datos.png` } },
 
     {
       selector: '.toggle-node',

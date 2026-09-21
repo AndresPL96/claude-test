@@ -16,6 +16,7 @@ function calcSemaforo(criticidad, estado, efectividadPct) {
   if (esCritica && estado === 'Degradada') return 'ROJO';
   if (estado === 'Fuera de servicio') return 'NARANJA';
   if (estado === 'Degradada') return 'AMARILLO';
+  if (Number.isNaN(Number(efectividadPct))) return 'SIN_DATOS';
   if (Number(efectividadPct) < 70) return 'AMARILLO';
   return 'VERDE';
 }

@@ -20,7 +20,7 @@ function wireProcesoAreaFilter(selectEl, eventos, onFilterChange) {
 }
 
 function wireSemaforoFilter(selectEl, cy) {
-  const ESTADOS = ['VERDE', 'AMARILLO', 'NARANJA', 'ROJO'];
+  const ESTADOS = ['VERDE', 'AMARILLO', 'NARANJA', 'ROJO', 'SIN_DATOS'];
   selectEl.innerHTML = '<option value="">Todos los semáforos</option>';
   ESTADOS.forEach((estado) => {
     const opt = document.createElement('option');
