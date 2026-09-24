@@ -2,37 +2,30 @@
  * Construye el modelo BowTie (uno por Evento Tope) a partir de las hojas ya limpiadas
  * por dataValidator. No confía en la columna Semaforo cruda del Excel: la recalcula.
  *
- * Fórmula real (copiada de la columna J de Barreras_Preventivas/Mitigadoras en el Excel):
- *   Crítica + Fuera de servicio => ROJO
- *   Crítica + Degradada         => ROJO
- *   Fuera de servicio (no crítica) => NARANJA
- *   Degradada (no crítica)         => AMARILLO
- *   Efectividad_Pct < 70           => AMARILLO
- *   en otro caso                   => VERDE
+ * Regla (igual a la fórmula de la columna Semaforo en Barreras_Preventivas/Mitigadoras):
+ * depende solo de Estado; Criticidad es informativa y no afecta el color.
+ *   Operativa         => VERDE
+ *   Degradada         => AMARILLO
+ *   Fuera de servicio => ROJO
+ *   otro / vacío      => SIN_DATOS
  */
-function calcSemaforo(criticidad, estado, efectividadPct) {
-  const esCritica = criticidad === 'Crítica';
-  if (esCritica && estado === 'Fuera de servicio') return 'ROJO';
-  if (esCritica && estado === 'Degradada') return 'ROJO';
-  if (estado === 'Fuera de servicio') return 'NARANJA';
+function calcSemaforo(estado) {
+  if (estado === 'Operativa') return 'VERDE';
   if (estado === 'Degradada') return 'AMARILLO';
-  if (Number.isNaN(Number(efectividadPct))) return 'SIN_DATOS';
-  if (Number(efectividadPct) < 70) return 'AMARILLO';
-  return 'VERDE';
+  if (estado === 'Fuera de servicio') return 'ROJO';
+  return 'SIN_DATOS';
 }
 
 function buildBarrera(row) {
-  const efectividad = Number(row.Efectividad_Pct);
   return {
     id: row.ID_Barrera,
     nombre: row.Nombre_Barrera,
     tipo: row.Tipo,
     criticidad: row.Criticidad,
     estado: row.Estado,
-    efectividadPct: efectividad,
     ultimaVerificacion: row.Ultima_Verificacion,
     responsable: row.Responsable,
-    semaforo: calcSemaforo(row.Criticidad, row.Estado, efectividad),
+    semaforo: calcSemaforo(row.Estado),
     factores: [],
   };
 }
@@ -105,6 +98,7 @@ function buildBowtieModel(clean) {
           nombre: ce.Nombre_Control,
           efectividadPct: Number(ce.Efectividad_Pct),
           estado: ce.Estado,
+          semaforo: calcSemaforo(ce.Estado),
         });
       }
     }

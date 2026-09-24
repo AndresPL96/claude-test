@@ -7,6 +7,8 @@ function createDiagramRenderer(container, options) {
   const onBarreraClick = options.onBarreraClick || (() => {});
   const onConsecuenciaClick = options.onConsecuenciaClick || (() => {});
   const onAmenazaClick = options.onAmenazaClick || (() => {});
+  const onFactorClick = options.onFactorClick || (() => {});
+  const onControlClick = options.onControlClick || (() => {});
 
   const state = {
     collapsedAmenazas: new Set(),
@@ -14,6 +16,7 @@ function createDiagramRenderer(container, options) {
     leftCollapsed: false,
     rightCollapsed: false,
     viewMode: 'completa', // 'simple' | 'completa'
+    semaforoFiltro: '',
   };
 
   let evento = null;
@@ -34,7 +37,21 @@ function createDiagramRenderer(container, options) {
     cy.elements().remove();
     cy.add(elements);
     cy.layout({ name: 'preset' }).run();
-    cy.fit(undefined, 40);
+    cy.fit(undefined, 60);
+    applySemaforoFilter();
+  }
+
+  // Se reaplica en cada render porque `cy.elements().remove()` descarta los estilos en línea.
+  function applySemaforoFilter() {
+    const estado = state.semaforoFiltro;
+    cy.nodes('.barrera-node').forEach((node) => {
+      node.style('opacity', !estado || node.data('semaforo') === estado ? 1 : 0.2);
+    });
+  }
+
+  function setSemaforoFilter(estado) {
+    state.semaforoFiltro = estado || '';
+    applySemaforoFilter();
   }
 
   function setEvento(nuevoEvento) {
@@ -50,6 +67,23 @@ function createDiagramRenderer(container, options) {
     state.viewMode = mode;
     render();
   }
+
+  // Resalta la ruta completa (amenaza/consecuencia + sus barreras + tramos) bajo el cursor
+  cy.on('mouseover', 'node[row]', (evt) => {
+    const row = evt.target.data('row');
+    cy.elements(`[row = "${row}"]`).addClass('hl');
+    container.style.cursor = 'pointer';
+  });
+  cy.on('mouseout', 'node[row]', () => {
+    cy.elements('.hl').removeClass('hl');
+    container.style.cursor = '';
+  });
+  cy.on('mouseover', '.toggle-node', () => {
+    container.style.cursor = 'pointer';
+  });
+  cy.on('mouseout', '.toggle-node', () => {
+    container.style.cursor = '';
+  });
 
   cy.on('tap', 'node', (evt) => {
     const node = evt.target;
@@ -72,11 +106,13 @@ function createDiagramRenderer(container, options) {
     }
 
     if (data.kind === 'barrera') onBarreraClick(data.raw);
+    else if (data.kind === 'factor-escalamiento') onFactorClick(data.raw);
+    else if (data.kind === 'control-escalamiento') onControlClick(data.raw);
     else if (data.kind === 'consecuencia') onConsecuenciaClick(data.raw);
     else if (data.kind === 'amenaza') onAmenazaClick(data.raw);
   });
 
-  return { cy, setEvento, setViewMode, getState: () => state };
+  return { cy, setEvento, setViewMode, setSemaforoFilter, getState: () => state };
 }
 
 window.BowtieDiagramRenderer = { createDiagramRenderer };

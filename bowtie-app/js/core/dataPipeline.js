@@ -45,7 +45,6 @@ function runBowtiePipeline(sheets) {
     report
   );
   barrerasPrev = V.filterOrphans('Barreras_Preventivas', barrerasPrev, 'ID_Amenaza', amenazaIds, report, 'Amenazas');
-  V.validateRange('Barreras_Preventivas', barrerasPrev, 'Efectividad_Pct', 0, 100, report, 'ID_Barrera');
   const barreraPrevIds = new Set(barrerasPrev.map((b) => b.ID_Barrera));
 
   let barrerasMit = V.cleanSheetRows(
@@ -56,7 +55,6 @@ function runBowtiePipeline(sheets) {
     report
   );
   barrerasMit = V.filterOrphans('Barreras_Mitigadoras', barrerasMit, 'ID_Consecuencia', consecuenciaIds, report, 'Consecuencias');
-  V.validateRange('Barreras_Mitigadoras', barrerasMit, 'Efectividad_Pct', 0, 100, report, 'ID_Barrera');
   const barreraMitIds = new Set(barrerasMit.map((b) => b.ID_Barrera));
 
   let factores = V.cleanSheetRows(

@@ -4,16 +4,24 @@
  * lado colapsado, vista simple/completa). No usa layout de fuerzas: cada nodo recibe x,y
  * explícitos para que el diagrama sea predecible y editable.
  *
- * Convenciones de espaciado (en px, coordenadas del propio Cytoscape):
+ * Convención de conexión: todas las aristas van de fuera hacia dentro (source = nodo más
+ * lejano al evento, target = nodo más cercano) y son rectas.
+ *
+ * El giro ortogonal hacia el evento no se delega al motor de curvas (el modo `taxi` de
+ * Cytoscape ignora los endpoints y deja el trazo colgando del borde de la caja): cada fila
+ * termina en un nodo de unión invisible sobre el tronco vertical, y un único tramo lleva
+ * del tronco al evento. Así el recorrido es el mismo que dibuja BowTie XP y es predecible.
  */
 const LAYOUT = {
-  rowHeight: 130,      // separación vertical entre ramas (amenaza/consecuencia); debe superar la altura del ícono de barrera
-  colWidth: 170,       // separación horizontal entre columnas (amenaza -> barreras -> evento)
+  rowHeight: 200,      // separación vertical entre ramas; supera la altura del nodo barrera (192)
+  rowHeightSimple: 135, // sin barreras a la vista las filas son mucho más bajas
+  colWidth: 190,       // separación horizontal entre columnas (amenaza -> barreras -> evento)
+  baseOffset: 60,      // holgura extra entre el tronco y la primera columna de barreras
+  spineX: 130,         // distancia del tronco vertical al centro del evento
   eventoX: 0,
-  toggleOffset: 40,    // separación del botón +/- respecto a su nodo
-  sideToggleOffsetX: 35,
-  sideToggleOffsetY: 35, // baja el botón +/- del evento para no superponerse con la línea central
-  minBarreraSpacing: 150,
+  toggleOffset: 80,    // medio ancho del nodo amenaza/consecuencia: el botón cae sobre el borde
+  peligroY: -185,
+  subRowHeight: 170,   // separación de cada sub-fila de factor de escalamiento bajo su rama
 };
 
 function toggleNode(id, x, y, collapsed, parentIds) {
@@ -32,96 +40,191 @@ function toggleNode(id, x, y, collapsed, parentIds) {
  */
 function buildSideElements(side, items, viewMode, collapsedSet, eventoId) {
   const elements = [];
+  if (items.length === 0) return elements;
+
   const signo = side === 'izq' ? -1 : 1;
-  const visibleItems = items; // el colapso individual no quita la fila, solo sus barreras
+  const spineX = signo * LAYOUT.spineX;
+  const spineId = `spine:${side}`;
 
-  const totalRows = visibleItems.length;
-  const startY = -((totalRows - 1) * LAYOUT.rowHeight) / 2;
+  // Tronco vertical: todas las ramas del lado desembocan aquí y de aquí sale un solo
+  // tramo al evento, en lugar de un abanico de diagonales cruzadas.
+  elements.push({
+    data: { id: spineId, isHelper: true },
+    position: { x: spineX, y: 0 },
+    classes: 'junction-node',
+  });
+  elements.push({
+    data: { id: `edge:${spineId}:${eventoId}`, source: spineId, target: eventoId },
+    classes: 'edge-row',
+  });
 
-  visibleItems.forEach((item, idx) => {
-    const y = startY + idx * LAYOUT.rowHeight;
+  // Si en este lado no se dibuja ninguna barrera (vista simple o todo colapsado) las filas
+  // no necesitan la altura del nodo barrera y el diagrama deja de verse estirado.
+  const hayBarreras =
+    viewMode === 'completa' &&
+    items.some((it) => !it.sinBarreras && !collapsedSet.has(it.id) && (it.barreras || []).length > 0);
+  const rowHeight = hayBarreras ? LAYOUT.rowHeight : LAYOUT.rowHeightSimple;
+
+  // Cada factor de escalamiento visible ocupa una sub-fila propia bajo la rama, así que las
+  // ramas ya no son de altura fija: se apilan según cuántas sub-filas traiga cada una.
+  const filas = items.map((item) => {
+    const barreras = item.barreras || [];
+    const showBarreras =
+      viewMode === 'completa' && barreras.length > 0 && !item.sinBarreras && !collapsedSet.has(item.id);
+    const subFilas = [];
+    if (showBarreras) {
+      // En orden de barrera (de la más lejana a la más cercana al evento): así la línea de
+      // subida de cada sub-fila nunca cruza la sub-fila de encima.
+      barreras.forEach((barrera, bIdx) => {
+        (barrera.factores || []).forEach((factor) => subFilas.push({ factor, barrera, bIdx }));
+      });
+    }
+    return { item, showBarreras, subFilas };
+  });
+
+  const alturaFila = (f) => rowHeight + f.subFilas.length * LAYOUT.subRowHeight;
+  const alturaTotal = filas.reduce((acc, f) => acc + alturaFila(f), 0) - rowHeight;
+  let cursorY = -alturaTotal / 2;
+
+  filas.forEach(({ item, showBarreras, subFilas }) => {
+    const y = cursorY;
+    cursorY += alturaFila({ subFilas });
     const isCollapsed = collapsedSet.has(item.id);
-    const nombreCorto = item.nombre;
 
     const barreras = item.barreras || [];
-    const showBarreras = viewMode === 'completa' && barreras.length > 0 && !item.sinBarreras;
 
-    // Posición X de la amenaza/consecuencia: más lejos si hay más barreras que dibujar
-    const numCols = showBarreras && !isCollapsed ? barreras.length : 0;
-    const amenazaX = signo * LAYOUT.colWidth * (numCols + 1);
+    // Columna k (1 = la más cercana al evento). Las barreras de la rama ocupan 1..n; los
+    // controles de un factor se ubican por fuera de la barrera que degradan, y la amenaza /
+    // consecuencia se aleja lo necesario para que todo quepa.
+    const colX = (k) => signo * (LAYOUT.baseOffset + LAYOUT.colWidth * k);
+    const colBarrera = (bIdx) => barreras.length - bIdx;
+    const numCols = showBarreras
+      ? Math.max(
+          barreras.length,
+          ...subFilas.map((sf) => colBarrera(sf.bIdx) + sf.factor.controles.length)
+        )
+      : 0;
+    const amenazaX = colX(numCols + 1);
 
     elements.push({
       data: {
         id: item.id,
-        label: nombreCorto,
+        label: item.nombre,
         kind: side === 'izq' ? 'amenaza' : 'consecuencia',
+        row: item.id,
         raw: item,
       },
       position: { x: amenazaX, y },
       classes: side === 'izq' ? 'amenaza-node' : 'consecuencia-node',
     });
 
-    // Botón +/- individual de la rama, pegado al nodo hacia afuera
+    // Botón +/- de la rama, sobre el borde interior del nodo (el que mira al evento)
     elements.push(
       toggleNode(
         `toggle:${item.id}`,
-        amenazaX + signo * LAYOUT.toggleOffset,
+        amenazaX - signo * LAYOUT.toggleOffset,
         y,
         isCollapsed,
         [item.id]
       )
     );
 
-    const sinBarreraVisual = item.sinBarreras || viewMode === 'simple' || isCollapsed;
-
-    if (sinBarreraVisual || barreras.length === 0) {
-      // Línea directa (discontinua si es un hallazgo real de "sin barrera")
+    // Cierra la rama: tramo horizontal hasta el tronco y tramo vertical sobre él.
+    const conectarAlTronco = (lastId) => {
+      const extra = item.sinBarreras ? ' edge-sin-barrera' : '';
+      if (Math.abs(y) < 1) {
+        elements.push({
+          data: { id: `edge:${lastId}:${spineId}`, source: lastId, target: spineId, row: item.id },
+          classes: `edge-row${extra}`,
+        });
+        return;
+      }
+      const juncId = `junc:${item.id}`;
       elements.push({
-        data: {
-          id: `edge:${item.id}:${eventoId}`,
-          source: side === 'izq' ? item.id : eventoId,
-          target: side === 'izq' ? eventoId : item.id,
-        },
-        classes: item.sinBarreras ? 'edge-directa edge-sin-barrera' : 'edge-directa',
+        data: { id: juncId, isHelper: true, row: item.id },
+        position: { x: spineX, y },
+        classes: 'junction-node',
       });
+      elements.push({
+        data: { id: `edge:${lastId}:${juncId}`, source: lastId, target: juncId, row: item.id },
+        classes: `edge-row${extra}`,
+      });
+      elements.push({
+        data: { id: `edge:${juncId}:${spineId}`, source: juncId, target: spineId, row: item.id },
+        classes: `edge-row${extra}`,
+      });
+    };
+
+    if (!showBarreras) {
+      conectarAlTronco(item.id);
       return;
     }
 
-    // Cadena de barreras entre la amenaza/consecuencia y el evento tope
-    let prevNodeId = item.id;
-    let prevX = amenazaX;
-    barreras.forEach((barrera, bIdx) => {
-      const bx = signo * LAYOUT.colWidth * (numCols - bIdx);
+    const pushBarrera = (barrera, x, yy, kind) => {
       elements.push({
         data: {
           id: barrera.id,
           label: barrera.nombre,
-          kind: 'barrera',
+          kind,
           semaforo: barrera.semaforo,
+          row: item.id,
           raw: barrera,
         },
-        position: { x: bx, y },
+        position: { x, y: yy },
         classes: `barrera-node semaforo-${barrera.semaforo.toLowerCase()}`,
       });
+    };
+    const pushEdge = (source, target, classes = 'edge-row') => {
+      elements.push({
+        data: { id: `edge:${source}:${target}`, source, target, row: item.id },
+        classes,
+      });
+    };
+
+    // Cadena de barreras entre la amenaza/consecuencia y el evento tope
+    let prevNodeId = item.id;
+    barreras.forEach((barrera, bIdx) => {
+      pushBarrera(barrera, colX(colBarrera(bIdx)), y, 'barrera');
+      pushEdge(prevNodeId, barrera.id);
+      prevNodeId = barrera.id;
+    });
+    conectarAlTronco(prevNodeId);
+
+    // Sub-amenazas: cada factor de escalamiento es una rama propia bajo la fila, con sus
+    // controles como barreras, que remonta en ángulo recto hasta la barrera que degrada.
+    subFilas.forEach(({ factor, barrera, bIdx }, sIdx) => {
+      const sy = y + (sIdx + 1) * LAYOUT.subRowHeight;
+      const parentCol = colBarrera(bIdx);
+      const factorId = `factor:${factor.id}`;
+
       elements.push({
         data: {
-          id: `edge:${prevNodeId}:${barrera.id}`,
-          source: side === 'izq' ? prevNodeId : barrera.id,
-          target: side === 'izq' ? barrera.id : prevNodeId,
+          id: factorId,
+          label: factor.nombre,
+          kind: 'factor-escalamiento',
+          row: item.id,
+          raw: { ...factor, barrera },
         },
-        classes: 'edge-barrera',
+        position: { x: amenazaX, y: sy },
+        classes: 'factor-node',
       });
-      prevNodeId = barrera.id;
-      prevX = bx;
-    });
 
-    elements.push({
-      data: {
-        id: `edge:${prevNodeId}:${eventoId}`,
-        source: side === 'izq' ? prevNodeId : eventoId,
-        target: side === 'izq' ? eventoId : prevNodeId,
-      },
-      classes: 'edge-barrera',
+      let prevId = factorId;
+      const n = factor.controles.length;
+      factor.controles.forEach((control, cIdx) => {
+        pushBarrera(control, colX(parentCol + n - cIdx), sy, 'control-escalamiento');
+        pushEdge(prevId, control.id);
+        prevId = control.id;
+      });
+
+      const juncId = `junc:${factorId}`;
+      elements.push({
+        data: { id: juncId, isHelper: true, row: item.id },
+        position: { x: colX(parentCol), y: sy },
+        classes: 'junction-node',
+      });
+      pushEdge(prevId, juncId);
+      pushEdge(juncId, barrera.id);
     });
   });
 
@@ -145,7 +248,7 @@ function buildDiagramElements(evento, state) {
 
   elements.push({
     data: { id: `peligro:${evento.id}`, label: evento.peligro, kind: 'peligro' },
-    position: { x: LAYOUT.eventoX, y: -LAYOUT.rowHeight * 1.3 },
+    position: { x: LAYOUT.eventoX, y: LAYOUT.peligroY },
     classes: 'peligro-node',
   });
   elements.push({
@@ -153,12 +256,12 @@ function buildDiagramElements(evento, state) {
     classes: 'edge-peligro',
   });
 
-  // Botones de colapso de lado completo, pegados a cada costado del evento
+  // Botones de colapso de lado completo, sobre el punto de conexión de cada costado
   elements.push(
     toggleNode(
       'toggle:lado:izq',
-      LAYOUT.eventoX - LAYOUT.sideToggleOffsetX,
-      LAYOUT.sideToggleOffsetY,
+      LAYOUT.eventoX - LAYOUT.spineX,
+      0,
       state.leftCollapsed,
       evento.amenazas.map((a) => a.id)
     )
@@ -166,8 +269,8 @@ function buildDiagramElements(evento, state) {
   elements.push(
     toggleNode(
       'toggle:lado:der',
-      LAYOUT.eventoX + LAYOUT.sideToggleOffsetX,
-      LAYOUT.sideToggleOffsetY,
+      LAYOUT.eventoX + LAYOUT.spineX,
+      0,
       state.rightCollapsed,
       evento.consecuencias.map((c) => c.id)
     )

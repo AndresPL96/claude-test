@@ -13,6 +13,8 @@ function initAppShell(dom, datos) {
     onBarreraClick: (barrera) => showBarreraDetail(dom.detailPanel, barrera),
     onConsecuenciaClick: (consecuencia) => showConsecuenciaDetail(dom.detailPanel, consecuencia),
     onAmenazaClick: (amenaza) => showAmenazaDetail(dom.detailPanel, amenaza),
+    onFactorClick: (factor) => showFactorDetail(dom.detailPanel, factor),
+    onControlClick: (control) => showControlDetail(dom.detailPanel, control),
   });
   dom.cyContainer.__cy = renderer.cy;
 
@@ -24,7 +26,7 @@ function initAppShell(dom, datos) {
   window.BowtieFilters.wireProcesoAreaFilter(dom.areaSelect, modelo, (filtrados) => {
     window.BowtieEventSelector.wireEventSelector(dom.eventSelect, filtrados, (evento) => renderer.setEvento(evento));
   });
-  window.BowtieFilters.wireSemaforoFilter(dom.semaforoSelect, renderer.cy);
+  window.BowtieFilters.wireSemaforoFilter(dom.semaforoSelect, renderer);
 
   dom.btnVistaSimple.onclick = () => {
     renderer.setViewMode('simple');
@@ -61,8 +63,6 @@ function renderKpis(container, kpis) {
     ['Barreras Mitigadoras', kpis.totalBarrerasMitigadoras],
     ['Prev. en ROJO', kpis.barrerasPrevRojo],
     ['Mit. en ROJO', kpis.barrerasMitRojo],
-    ['Efectividad prom. Prev.', `${kpis.efectividadPromedioPrev}%`],
-    ['Efectividad prom. Mit.', `${kpis.efectividadPromedioMit}%`],
     ['Amenazas sin barrera', kpis.amenazasSinBarrera],
     ['Consecuencias sin barrera', kpis.consecuenciasSinBarrera],
   ];
@@ -98,12 +98,36 @@ function showBarreraDetail(container, barrera) {
       <dt>Tipo</dt><dd>${barrera.tipo || '—'}</dd>
       <dt>Criticidad</dt><dd>${barrera.criticidad || '—'}</dd>
       <dt>Estado</dt><dd>${barrera.estado || '—'}</dd>
-      <dt>Efectividad</dt><dd>${barrera.efectividadPct}%</dd>
       <dt>Última verificación</dt><dd>${barrera.ultimaVerificacion || '—'}</dd>
       <dt>Responsable</dt><dd>${barrera.responsable || '—'}</dd>
       <dt>Semáforo</dt><dd>${barrera.semaforo}</dd>
     </dl>
     ${factoresHtml ? `<h4>Factores de escalamiento</h4><ul>${factoresHtml}</ul>` : '<p class="hint">Sin factores de escalamiento.</p>'}
+  `;
+}
+
+function showFactorDetail(container, factor) {
+  const controlesHtml = factor.controles
+    .map((c) => `<li>${c.nombre} (${c.efectividadPct}% · ${c.estado})</li>`)
+    .join('');
+  container.innerHTML = `
+    <h3>Factor de escalamiento: ${factor.nombre}</h3>
+    <dl>
+      <dt>Descripción</dt><dd>${factor.descripcion || '—'}</dd>
+      <dt>Barrera afectada</dt><dd>${factor.barrera.nombre}</dd>
+    </dl>
+    ${controlesHtml ? `<h4>Controles</h4><ul>${controlesHtml}</ul>` : '<p class="hint">Sin controles de escalamiento.</p>'}
+  `;
+}
+
+function showControlDetail(container, control) {
+  container.innerHTML = `
+    <h3>Control de escalamiento: ${control.nombre}</h3>
+    <dl>
+      <dt>Estado</dt><dd>${control.estado || '—'}</dd>
+      <dt>Efectividad</dt><dd>${control.efectividadPct}%</dd>
+      <dt>Semáforo</dt><dd>${control.semaforo}</dd>
+    </dl>
   `;
 }
 

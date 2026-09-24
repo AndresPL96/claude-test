@@ -5,18 +5,13 @@
  */
 function calcularKpis(clean) {
   const semaforoPrev = clean.Barreras_Preventivas.map((b) =>
-    window.BowtieDataModel.calcSemaforo(b.Criticidad, b.Estado, Number(b.Efectividad_Pct))
+    window.BowtieDataModel.calcSemaforo(b.Estado)
   );
   const semaforoMit = clean.Barreras_Mitigadoras.map((b) =>
-    window.BowtieDataModel.calcSemaforo(b.Criticidad, b.Estado, Number(b.Efectividad_Pct))
+    window.BowtieDataModel.calcSemaforo(b.Estado)
   );
 
   const contarRojo = (arr) => arr.filter((s) => s === 'ROJO').length;
-  const promedioEfectividad = (rows) => {
-    if (rows.length === 0) return 0;
-    const suma = rows.reduce((acc, r) => acc + Number(r.Efectividad_Pct), 0);
-    return Math.round((suma / rows.length) * 10) / 10;
-  };
 
   const amenazasConBarrera = new Set(clean.Barreras_Preventivas.map((b) => b.ID_Amenaza));
   const consecuenciasConBarrera = new Set(clean.Barreras_Mitigadoras.map((b) => b.ID_Consecuencia));
@@ -41,8 +36,6 @@ function calcularKpis(clean) {
     barrerasMitRojo: contarRojo(semaforoMit),
     criticasDegradadasPrev,
     criticasDegradadasMit,
-    efectividadPromedioPrev: promedioEfectividad(clean.Barreras_Preventivas),
-    efectividadPromedioMit: promedioEfectividad(clean.Barreras_Mitigadoras),
     amenazasSinBarrera,
     consecuenciasSinBarrera,
   };

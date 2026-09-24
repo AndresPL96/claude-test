@@ -15,7 +15,15 @@
     <button id="btnExportPng">Exportar PNG</button>
   </div>
   <div class="layout">
-    <div id="cy"></div>
+    <div class="diagram-wrap">
+      <div id="cy"></div>
+      <div class="legend">
+        <span><i class="verde"></i>Efectiva</span>
+        <span><i class="amarillo"></i>Degradada</span>
+        <span><i class="rojo"></i>Fallida</span>
+        <span><i class="sin-datos"></i>Sin datos</span>
+      </div>
+    </div>
     <div class="side-panel">
       <div id="detailPanel">
         <p class="hint">Haz clic en una barrera, amenaza o consecuencia para ver el detalle.</p>
@@ -47,16 +55,16 @@
             id: 'AM-001', nombre: 'Corrosión interna de tubería', categoria: 'Mecánica',
             descripcion: 'Pérdida de espesor por corrosión CO2/H2S', sinBarreras: false,
             barreras: [
-              { id: 'BP-001', nombre: 'Inspección por ultrasonido', tipo: 'Activa', criticidad: 'Crítica', estado: 'Operativa', efectividadPct: 85, ultimaVerificacion: '2026-06-15', responsable: 'Ing. Confiabilidad', semaforo: 'VERDE',
-                factores: [{ id: 'FE-001', nombre: 'Falta de mantenimiento del equipo', controles: [{ id: 'CE-001', nombre: 'Plan de mantenimiento', efectividadPct: 70, estado: 'Operativa' }] }] },
-              { id: 'BP-002', nombre: 'Recubrimiento anticorrosivo', tipo: 'Pasiva', criticidad: 'No crítica', estado: 'Degradada', efectividadPct: 60, ultimaVerificacion: '2026-05-01', responsable: 'Ing. Confiabilidad', semaforo: 'AMARILLO', factores: [] },
+              { id: 'BP-001', nombre: 'Inspección por ultrasonido', tipo: 'Activa', criticidad: 'Crítica', estado: 'Operativa', ultimaVerificacion: '2026-06-15', responsable: 'Ing. Confiabilidad', semaforo: 'VERDE',
+                factores: [{ id: 'FE-001', nombre: 'Falta de mantenimiento del equipo', controles: [{ id: 'CE-001', nombre: 'Plan de mantenimiento', efectividadPct: 70, estado: 'Operativa', semaforo: 'VERDE' }] }] },
+              { id: 'BP-002', nombre: 'Recubrimiento anticorrosivo', tipo: 'Pasiva', criticidad: 'No crítica', estado: 'Degradada', ultimaVerificacion: '2026-05-01', responsable: 'Ing. Confiabilidad', semaforo: 'AMARILLO', factores: [] },
             ],
           },
           {
             id: 'AM-002', nombre: 'Falla por fatiga en soldadura', categoria: 'Diseño',
             descripcion: 'Ciclos de presión repetidos', sinBarreras: false,
             barreras: [
-              { id: 'BP-003', nombre: 'Inspección radiográfica', tipo: 'Activa', criticidad: 'Crítica', estado: 'Fuera de servicio', efectividadPct: 40, ultimaVerificacion: '2026-01-10', responsable: 'Ing. Integridad', semaforo: 'ROJO', factores: [] },
+              { id: 'BP-003', nombre: 'Inspección radiográfica', tipo: 'Activa', criticidad: 'Crítica', estado: 'Fuera de servicio', ultimaVerificacion: '2026-01-10', responsable: 'Ing. Integridad', semaforo: 'ROJO', factores: [] },
             ],
           },
           {
@@ -69,7 +77,11 @@
             id: 'CO-001', nombre: 'Incendio en área de proceso', severidad: 4, categoriaImpacto: 'Personas',
             descripcion: 'Incendio por ignición de nube de gas', sinBarreras: false,
             barreras: [
-              { id: 'BM-001', nombre: 'Sistema de detección F&G', tipo: 'Activa', criticidad: 'Crítica', estado: 'Operativa', efectividadPct: 90, ultimaVerificacion: '2026-06-15', responsable: 'Ing. Confiabilidad', semaforo: 'VERDE', factores: [] },
+              { id: 'BM-001', nombre: 'Sistema de detección F&G', tipo: 'Activa', criticidad: 'Crítica', estado: 'Operativa', ultimaVerificacion: '2026-06-15', responsable: 'Ing. Confiabilidad', semaforo: 'VERDE',
+                factores: [{ id: 'FE-002', nombre: 'Sensores fuera de calibración', controles: [
+                  { id: 'CE-002', nombre: 'Plan de calibración periódica', efectividadPct: 60, estado: 'Degradada', semaforo: 'AMARILLO' },
+                  { id: 'CE-003', nombre: 'Auditoría de calibración', efectividadPct: 80, estado: 'Operativa', semaforo: 'VERDE' },
+                ] }] },
             ],
           },
           {
@@ -84,7 +96,6 @@
       totalEventos: 1, totalAmenazas: 3, totalConsecuencias: 2,
       totalBarrerasPreventivas: 3, totalBarrerasMitigadoras: 1,
       barrerasPrevRojo: 1, barrerasMitRojo: 0,
-      efectividadPromedioPrev: 61.7, efectividadPromedioMit: 90,
       amenazasSinBarrera: 1, consecuenciasSinBarrera: 1,
     };
 
